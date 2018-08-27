@@ -1,3 +1,5 @@
+// This is to trick TypeScript into thinking this is a ServiceWorker module until
+// it gets full first class support
 import {} from './worker'
 declare var self: ServiceWorkerGlobalScope
 
