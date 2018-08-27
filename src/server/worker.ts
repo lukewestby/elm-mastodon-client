@@ -1,4 +1,4 @@
-import {} from '.'
+import {} from './worker'
 declare var self: ServiceWorkerGlobalScope
 
 import { graphql } from 'graphql'
