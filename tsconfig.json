@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es5",
+        "lib": ["scripthost", "webworker", "dom", "es2018", "esnext.asynciterable"],
+        "noImplicitAny": true,
+        "preserveConstEnums": true,
+        "outDir": "./dist",
+        "moduleResolution": "node",
+        "sourceMap": true,
+    },
+    "include": [
+        "src/*.ts",
+        "src/**/*.ts"
+    ]
+}
