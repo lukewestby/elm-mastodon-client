@@ -31,7 +31,7 @@ module.exports = {
         type: "javascript/auto",
       },
       {
-        test: /server\/index\.ts/,
+        test: /server\/worker\.ts/,
         use: {
           loader: 'service-worker-loader',
           options: {
