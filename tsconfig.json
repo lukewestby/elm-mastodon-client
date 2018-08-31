@@ -8,9 +8,14 @@
         "outDir": "./dist",
         "moduleResolution": "node",
         "sourceMap": true,
+        "baseUrl": ".",
+        "paths": {
+            "graphql-resolvers": ["lib/typings/custom"]
+        }
     },
     "include": [
         "src/*.ts",
-        "src/**/*.ts"
+        "src/**/*.ts",
+        "lib/typings/*.d.ts"
     ]
 }

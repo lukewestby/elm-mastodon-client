@@ -1,0 +1,142 @@
+type Query {
+  instances(query: String!): [String!]!
+  current: Account!
+}
+
+type Mutation {
+  createApplication(clientName: String!, redirectUris: [String!]!, scopes: [AuthScope!]!, website: String): Client!
+}
+
+enum AuthScope {
+  READ
+  WRITE
+  FOLLOW
+}
+
+type Client {
+  id: String!
+  clientId: String!
+  clientSecret: String!
+}
+
+type Emoji {
+  shortcode: String!
+  staticUrl: String!
+  url: String!
+  visibleInPicker: Boolean!
+}
+
+type Account {
+  id: String!
+  username: String!
+  account: String!
+  displayName: String!
+  locked: Boolean!
+  biography: String!
+  url: String!
+  avatar: String!
+  avatarStatic: String!
+  header: String!
+  headerStatic: String!
+  emojis: [Emoji!]!
+  fields: [AccountMetadata!]!
+  bot: Boolean!
+  statuses(onlyMedia: Boolean, pinned: Boolean, excludeReplies: Boolean, maxId: String, sinceId: String, limit: Int): StatusList!
+  followers(maxId: String, sinceId: String, limit: Int): AccountList!
+  following(maxId: String, sinceId: String, limit: Int): AccountList!
+}
+
+type AccountList {
+  total: Int!
+  accounts: [Account!]!
+  nextId: String
+  previousId: String
+}
+
+type AccountMetadata {
+  name: String!
+  value: String!
+}
+
+enum StatusVisibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+  DIRECT
+}
+
+type StatusList {
+  total: Int!
+  statuses: [Status!]!
+  nextId: String
+  previousId: String
+}
+
+type Status {
+  id: String!
+  uri: String!
+  url: String
+  account: Account!
+  inReplyToStatus: Status
+  inReplyToAccount: Account
+  reblog: Status
+  content: String!
+  timestamp: String!
+  emojis: [Emoji!]!
+  repliesCount:	Int!
+  reblogsCount: Int!
+  favoritesCount: Int!
+  reblogged: Boolean!
+  favourited: Boolean!
+  muted: Boolean!
+  sensitive: Boolean!
+  contentWarning: String
+  visibility: StatusVisibility!
+  attachments: [Attachment!]!
+  mentions: [Mention!]!
+  tags: [Tag!]!
+  application: Application
+  language: String
+  pinned: Boolean!
+}
+
+type Application {
+  name: String!
+  website: String
+}
+
+enum AttachmentType {
+  IMAGE
+  VIDEO
+  GIFV
+  UNKNOWN
+}
+
+type Attachment {
+  id: String!
+  type: AttachmentType!
+  url: String!
+  remoteUrl: String
+  previewUrl: String!
+  textUrl: String
+  description: String
+}
+
+type Mention {
+  url: String!
+  username: String!
+  account: String!
+  id: String!
+}
+
+type Tag {
+  name: String!
+  url: String!
+  history: [TagHistory!]!
+}
+
+type TagHistory {
+  day: Int!
+  uses: Int!
+  accounts: Int!
+}

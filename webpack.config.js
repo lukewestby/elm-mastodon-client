@@ -31,7 +31,7 @@ module.exports = {
         type: "javascript/auto",
       },
       {
-        test: /server\/worker\.ts/,
+        test: /Server\/Worker\.ts$/i,
         use: {
           loader: 'service-worker-loader',
           options: {
@@ -44,6 +44,22 @@ module.exports = {
         use: 'awesome-typescript-loader',
         exclude: /node_modules/,
       },
+      {
+        test: /\.elm$/,
+        exclude: /elm-stuff/,
+        use: {
+          loader: 'elm-webpack-loader',
+          options: {
+            forceWatch: true,
+            debug: true
+          }
+        },
+      },
+      {
+        test: /\.graphql$/,
+        use: 'graphql-import-loader',
+        exclude: /node_modules/,
+      }
     ],
   },
 

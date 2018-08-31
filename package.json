@@ -9,20 +9,30 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/graphql": "^0.13.4",
-    "graphql": "^0.13.2",
-    "graphql-tools": "^3.1.1",
-    "serviceworkers-ware": "^0.3.2"
+    "@types/graphql": "0.13.4",
+    "@types/node": "^10.9.2",
+    "dataloader": "1.4.0",
+    "graphql": "0.13.2",
+    "graphql-resolvers": "0.2.2",
+    "graphql-tools": "3.1.1",
+    "serviceworkers-ware": "0.3.2"
   },
   "devDependencies": {
-    "awesome-typescript-loader": "^5.2.0",
-    "html-webpack-plugin": "^3.2.0",
-    "service-worker-loader": "^2.1.0",
-    "serviceworker-webpack-plugin": "^1.0.1",
-    "ts-loader": "^4.5.0",
-    "typescript": "^3.0.1",
-    "webpack": "^4.17.1",
-    "webpack-cli": "^3.1.0",
-    "webpack-serve": "^2.0.2"
+    "@dillonkearns/elm-graphql": "^1.0.1",
+    "awesome-typescript-loader": "5.2.0",
+    "elm-format": "0.8.0",
+    "elm-webpack-loader": "5.0.0",
+    "graphql-import-loader": "0.2.1",
+    "html-webpack-plugin": "3.2.0",
+    "loader-utils": "1.1.0",
+    "service-worker-loader": "2.1.0",
+    "serviceworker-webpack-plugin": "1.0.1",
+    "ts-loader": "4.5.0",
+    "ts-node": "^7.0.1",
+    "typescript": "3.0.1",
+    "typescript-require": "0.2.10",
+    "webpack": "4.17.1",
+    "webpack-cli": "3.1.0",
+    "webpack-serve": "2.0.2"
   }
 }

@@ -1,10 +1,10 @@
 // This is to trick TypeScript into thinking this is a ServiceWorker module until
 // it gets full first class support
-import {} from './worker'
+import {} from './Worker'
 declare var self: ServiceWorkerGlobalScope
 
 import { graphql } from 'graphql'
-import schema from './schema'
+import schema from './Schema'
 
 interface RequestParams {
   query: string | null,

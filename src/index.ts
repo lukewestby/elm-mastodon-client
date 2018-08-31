@@ -1,21 +1,6 @@
-import * as Server from './server'
+import * as Server from './Server'
+import * as Client from './Client'
 
-Server
-  .start()
-  .then(() => {
-    
-    fetch('/virtual/api', {
-      method: "POST",
-      mode: "no-cors",
-      headers: {
-        "Content-Type": "application/json; charset=utf-8"
-      },
-      body: JSON.stringify({ query: `{ instanceSearch(query: "mastodon.technology") }` }),
-    })
-    .then(response => response.json())
-    .then(r => console.log(r))
-    .catch(e => console.error(e))
-    
-  })
+Server.start()
+  .then(() => Client.start())
   .catch(e => console.error(e))
-
