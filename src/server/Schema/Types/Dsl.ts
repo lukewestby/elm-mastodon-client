@@ -8,7 +8,8 @@ import {
   GraphQLList,
   GraphQLInt,
   GraphQLFloat,
-  GraphQLBoolean
+  GraphQLBoolean,
+  GraphQLEnumType
 } from 'graphql'
 
 export const id = GraphQLID
@@ -27,4 +28,11 @@ export const page = (type: GraphQLObjectType) => object({
     total: { type: nonNull(int) },
     [type.name[0].toLowerCase() + type.name.slice(1) + 's']: { type: nonNullList(type) }
   }
+})
+export const enum_ = (name: string, values: { [key: string]: string }) => new GraphQLEnumType({
+  name: name,
+  values: Object.keys(values).reduce((memo: { [key: string]: { type: string } }, next) => {
+    memo[next] = { type: values[next] }
+    return memo
+  }, {})
 })

@@ -2,12 +2,17 @@ const camelCase = (string: string) => {
   return string.replace(/(\_\w)/g, m => m[1].toUpperCase())
 }
 
-export const camelCaseKeys = (obj: {[key: string]: any}) => {
-  const output: {[key: string]: any} = {}
-  Object.keys(obj).forEach(key => {
-    output[camelCase(key)] = obj[key]
-  })
-  return output
+export const camelCaseKeys = (obj: any): any => {
+  if (typeof obj === 'object' && obj !== null && Object.prototype.toString.call(obj) === '[Object object]') {
+    return Object.keys(obj).reduce((memo: { [key: string]: any }, next) => {
+      memo[next] = camelCaseKeys(obj[next])
+      return memo
+    }, {})
+  } else if (Array.isArray(obj)) {
+    return obj.map(camelCaseKeys)
+  } else {
+    return obj
+  }
 }
 
 export const log = (a: any): any => {

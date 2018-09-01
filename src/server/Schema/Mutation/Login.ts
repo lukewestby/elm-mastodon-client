@@ -6,15 +6,14 @@ import * as Types from '../Types/Dsl'
 import Client from '../Types/Client'
 import Scope, {ApiScope} from '../Types/Scope'
 
-
-interface CreateApplicationArgs {
-  clientName: string,
+interface LoginArgs {
+  clientId: string,
+  clientSecret: string,
+  code: string,
   redirectUri: string,
-  scopes: Array<ApiScope>,
-  website: string | null
 }
 
-export const field: GraphQLFieldConfig<any, Context.WithInstance, CreateApplicationArgs> = {
+export const field: GraphQLFieldConfig<any, Context.WithInstance, LoginArgs> = {
   type: Types.nonNull(Client),
   args: {
     clientName: { type: Types.nonNull(Types.string) },
@@ -24,17 +23,19 @@ export const field: GraphQLFieldConfig<any, Context.WithInstance, CreateApplicat
   },
   resolve: combineResolvers(
     Context.requireInstance,
-    (_obj: any, args: CreateApplicationArgs, context: Context.WithInstance) => {
+    (_obj: any, args: LoginArgs, context: Context.WithInstance) => {
       const body = new FormData()
-      body.append('client_name', args.clientName)
-      body.append('redirect_uris', args.redirectUri)
-      body.append('scopes', args.scopes.map(scope => scope.toLowerCase()).join(' '))
-      if (args.website) body.append('website', args.website)
-      fetch(`https://${context.instance}/api/v1/apps`, {
+      body.append('client_id', args.clientId)
+      body.append('client_secret', args.clientSecret)
+      body.append('redirect_uri', args.redirectUri)
+      body.append('code', args.code)
+      body.append('grant_type', 'authorization_code')
+      fetch(`https://${context.instance}/auth/token`, {
         method: 'POST',
         body: body
       })
-      .then(r => r.json())
+      .then(Helpers.validateResponse)
+      .then(({ data }) => data)
       .then(Helpers.camelCaseKeys)
     }
   )

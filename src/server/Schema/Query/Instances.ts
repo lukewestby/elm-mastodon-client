@@ -9,7 +9,11 @@ export const field = {
     query: { type: Types.nonNull(Types.string) }
   },
   resolve: (_obj: any, args: { query: string }) => {
-    return fetch(`https://instances.social/api/1.0/instances/search?q=${encodeURIComponent(args.query)}&count=10&name=true`, {
+    const url = new URL('https://instances.social/api/1.0/instances/search')
+    url.searchParams.append('q', args.query)
+    url.searchParams.append('count', '10')
+    url.searchParams.append('name', 'true')
+    return fetch(url.href, {
       method: 'GET',
       headers: { 'Authorization': `Bearer ${INSTANCE_SOCIAL_TOKEN}` }
     })

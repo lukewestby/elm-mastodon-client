@@ -2,15 +2,19 @@ port module Effects
     exposing
         ( Effect
         , Error(..)
+        , State
         , createApplication
+        , login
         , map
         , none
-        , openWindow
         , run
         , searchInstances
         )
 
+import Browser.Navigation
 import Data.Mastodon.Client as Client exposing (Client)
+import Data.Mastodon.ClientId as ClientId exposing (ClientId)
+import Data.Mastodon.Instance as Instance exposing (Instance)
 import Extra.Maybe as Maybe
 import Graphql.Field as Field
 import Graphql.Http
@@ -19,9 +23,12 @@ import Graphql.Operation as Operation
 import Graphql.SelectionSet as SelectionSet
 import Http
 import Json.Encode as Encode exposing (Value)
+import Mastodon.Graphql.Enum.Scope as ApiScope
 import Mastodon.Graphql.Mutation as ApiMutation
 import Mastodon.Graphql.Query as ApiQuery
+import Route
 import Url exposing (Url)
+import Url.Builder as Builder
 
 
 searchInstances : String -> Effect (List Url)
@@ -38,23 +45,47 @@ searchInstances query =
         }
 
 
-createApplication : Url -> Effect Client
+createApplication : Url -> Effect ( Client.Id, Client )
 createApplication instance =
     GraphqlMutation
         { selection =
             ApiMutation.selection identity
-                |> SelectionSet.with (ApiMutation.createApplication Client.selection)
+                |> SelectionSet.with
+                    (ApiMutation.createApplication
+                        identity
+                        { clientName = "Elm Mastodon Example"
+                        , redirectUri = "https://elm-mastadon-demo.now.sh"
+                        , scopes = [ ApiScope.Read, ApiScope.Write, ApiScope.Follow ]
+                        }
+                        Client.selection
+                    )
         , headers =
             [ ( "x-mastodon-instance", instance.host ) ]
         }
 
 
-openWindow : Url -> Effect msg
-openWindow url =
-    PortSend
-        { tag = "OpenWindow"
-        , data = Encode.string (Url.toString url)
-        }
+login : Instance -> ClientId -> Effect msg
+login instance clientId =
+    instance
+        |> Instance.authorizeUrl clientId
+        |> Url.toString
+        |> LoadUrl
+
+
+pushRoute : Route.Route -> Effect msg
+pushRoute route =
+    route
+        |> Route.toUrl
+        |> Url.toString
+        |> PushUrl
+
+
+replaceRoute : Route.Route -> Effect msg
+replaceRoute route =
+    route
+        |> Route.toUrl
+        |> Url.toString
+        |> ReplaceUrl
 
 
 port outbound : { tag : String, data : Value } -> Cmd msg
@@ -73,6 +104,9 @@ type Effect msg
         { tag : String
         , data : Value
         }
+    | PushUrl String
+    | ReplaceUrl String
+    | LoadUrl String
     | None
 
 
@@ -99,6 +133,15 @@ map tagger effect =
         PortSend stuff ->
             PortSend stuff
 
+        LoadUrl url ->
+            LoadUrl url
+
+        PushUrl url ->
+            PushUrl url
+
+        ReplaceUrl url ->
+            ReplaceUrl url
+
         None ->
             None
 
@@ -108,8 +151,13 @@ type Error
     | GraphqlError (List GraphqlError.GraphqlError)
 
 
-run : (Error -> msg) -> Effect msg -> Cmd msg
-run onError effect =
+type alias State =
+    { navKey : Browser.Navigation.Key
+    }
+
+
+run : State -> (Error -> msg) -> Effect msg -> Cmd msg
+run state onError effect =
     case effect of
         GraphqlQuery stuff ->
             List.foldl
@@ -149,6 +197,15 @@ run onError effect =
 
         PortSend stuff ->
             outbound stuff
+
+        LoadUrl url ->
+            Browser.Navigation.load url
+
+        PushUrl url ->
+            Browser.Navigation.pushUrl state.navKey url
+
+        ReplaceUrl url ->
+            Browser.Navigation.replaceUrl state.navKey url
 
         None ->
             Cmd.none
