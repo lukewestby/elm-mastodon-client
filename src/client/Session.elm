@@ -1,36 +1,53 @@
-module Session exposing (Session, decoder, default, encoder)
+module Session exposing (Session(..), decoder, default, encoder)
 
+import Data.Mastodon.Client as Client exposing (Client)
 import Data.Mastodon.Credentials as Credentials exposing (Credentials)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
 
 
-type alias Session =
-    { credentials : Maybe Credentials
-    }
+type Session
+    = LoggedOut (List Client)
+    | LoggedIn (List Client) Credentials
 
 
 encoder : Session -> Value
 encoder session =
-    Encode.object
-        [ ( "crendentials"
-          , case session.credentials of
-                Just credentials ->
-                    Credentials.encoder credentials
+    case session of
+        LoggedOut clients ->
+            Encode.object
+                [ ( "tag", Encode.string "LoggedOut" )
+                , ( "clients", Encode.list Client.encoder clients )
+                ]
 
-                Nothing ->
-                    Encode.null
-          )
-        ]
+        LoggedIn clients credentials ->
+            Encode.object
+                [ ( "tag", Encode.string "LoggedIn" )
+                , ( "clients", Encode.list Client.encoder clients )
+                , ( "credentials", Credentials.encoder credentials )
+                ]
 
 
 decoder : Decoder Session
 decoder =
-    Decode.map Session
-        (Decode.field "credentials" (Decode.nullable Credentials.decoder))
+    Decode.andThen
+        (\tag ->
+            case tag of
+                "LoggedOut" ->
+                    Decode.map LoggedOut
+                        (Decode.field "clients" (Decode.list Client.decoder))
+
+                "LoggedIn" ->
+                    Decode.map2 LoggedIn
+                        (Decode.field "clients" (Decode.list Client.decoder))
+                        (Decode.field "credentials" Credentials.decoder)
+
+                _ ->
+                    Decode.fail (tag ++ " is not a valid Session tag")
+        )
+        (Decode.field "tag" Decode.string)
 
 
 default : Session
 default =
-    { credentials = Nothing
-    }
+    LoggedOut []

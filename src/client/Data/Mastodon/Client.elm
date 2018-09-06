@@ -38,21 +38,18 @@ selection instance =
         |> SelectionSet.with (ClientSecret.fromStringField ApiClient.clientSecret)
 
 
-decoder : Decoder ( Id, Client )
+decoder : Decoder Client
 decoder =
-    Decode.map4
-        (\id clientId clientSecret instance -> ( id, Client clientId clientSecret instance ))
-        (Decode.field "id" (Decode.map Id Decode.string))
+    Decode.map3 Client
         (Decode.field "clientId" ClientId.decoder)
         (Decode.field "clientSecret" ClientSecret.decoder)
         (Decode.field "instance" Instance.decoder)
 
 
-encoder : ( Id, Client ) -> Value
-encoder ( Id id, client ) =
+encoder : Client -> Value
+encoder client =
     Encode.object
-        [ ( "id", Encode.string id )
-        , ( "clientId", ClientId.encoder client.clientId )
+        [ ( "clientId", ClientId.encoder client.clientId )
         , ( "clientSecret", ClientSecret.encoder client.clientSecret )
         , ( "instance", Instance.encoder client.instance )
         ]

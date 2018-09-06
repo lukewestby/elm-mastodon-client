@@ -8,8 +8,12 @@ import Url.Parser as Parser exposing ((</>), (<?>), Parser)
 
 
 type Route
-    = InstanceSelection
-    | InstanceValidation (Maybe Code)
+    = Root
+    | InstanceSelection
+
+
+
+-- | InstanceValidation (Maybe Code)
 
 
 fromUrl : Url -> Maybe Route
@@ -20,29 +24,35 @@ fromUrl url =
 toUrl : Route -> Url
 toUrl route =
     case route of
+        Root ->
+            Builder.crossOrigin Constants.origin [] []
+                |> Url.fromString
+                |> Maybe.withDefault emptyUrl
+
         InstanceSelection ->
             Builder.crossOrigin Constants.origin [ "auth", "select" ] []
                 |> Url.fromString
                 |> Maybe.withDefault emptyUrl
 
-        InstanceValidation maybeAuthCode ->
-            maybeAuthCode
-                |> Maybe.map (Code.toQueryParameter "code" >> List.singleton)
-                |> Maybe.withDefault []
-                |> Builder.crossOrigin Constants.origin [ "auth", "validate" ]
-                |> Url.fromString
-                |> Maybe.withDefault emptyUrl
 
 
-
+-- InstanceValidation maybeAuthCode ->
+--     maybeAuthCode
+--         |> Maybe.map (Code.toQueryParameter "code" >> List.singleton)
+--         |> Maybe.withDefault []
+--         |> Builder.crossOrigin Constants.origin [ "auth", "validate" ]
+--         |> Url.fromString
+--         |> Maybe.withDefault emptyUrl
 -- INTERNAL
 
 
 parser : Parser (Route -> a) a
 parser =
     Parser.oneOf
-        [ Parser.map InstanceSelection (Parser.s "auth" </> Parser.s "select")
-        , Parser.map InstanceValidation (Parser.s "auth" </> Parser.s "validate" <?> Code.queryParser "code")
+        [ Parser.map Root Parser.top
+        , Parser.map InstanceSelection (Parser.s "auth" </> Parser.s "select")
+
+        -- , Parser.map InstanceValidation (Parser.s "auth" </> Parser.s "validate" <?> Code.queryParser "code")
         ]
 
 

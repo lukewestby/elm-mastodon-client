@@ -4,11 +4,14 @@ port module Effects
         , Error(..)
         , State
         , createApplication
+        , loadUrl
         , login
         , map
         , none
+        , pushRoute
+        , replaceRoute
         , run
-        , searchInstances
+        , verifyInstance
         )
 
 import Browser.Navigation
@@ -31,21 +34,22 @@ import Url exposing (Url)
 import Url.Builder as Builder
 
 
-searchInstances : String -> Effect (List Url)
-searchInstances query =
+verifyInstance : Instance -> Effect Bool
+verifyInstance instance =
     GraphqlQuery
         { selection =
             ApiQuery.selection identity
                 |> SelectionSet.with
-                    (Field.mapOrFail
-                        (Maybe.traverse Url.fromString >> Result.fromMaybe "Bad Url")
-                        (ApiQuery.instances { query = query })
+                    (Field.map
+                        (List.filterMap Instance.fromString)
+                        (ApiQuery.instances { query = Instance.name instance })
                     )
+                |> SelectionSet.map (List.member instance)
         , headers = []
         }
 
 
-createApplication : Url -> Effect ( Client.Id, Client )
+createApplication : Instance -> Effect ( Client.Id, Client )
 createApplication instance =
     GraphqlMutation
         { selection =
@@ -57,10 +61,10 @@ createApplication instance =
                         , redirectUri = "https://elm-mastadon-demo.now.sh"
                         , scopes = [ ApiScope.Read, ApiScope.Write, ApiScope.Follow ]
                         }
-                        Client.selection
+                        (Client.selection instance)
                     )
         , headers =
-            [ ( "x-mastodon-instance", instance.host ) ]
+            [ ( "x-mastodon-instance", Instance.name instance ) ]
         }
 
 
@@ -70,6 +74,11 @@ login instance clientId =
         |> Instance.authorizeUrl clientId
         |> Url.toString
         |> LoadUrl
+
+
+loadUrl : Url -> Effect msg
+loadUrl url =
+    LoadUrl (Url.toString url)
 
 
 pushRoute : Route.Route -> Effect msg

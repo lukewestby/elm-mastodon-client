@@ -27,7 +27,14 @@ encoder (Instance string) =
 
 decoder : Decoder Instance
 decoder =
-    Decode.map Instance Decode.string
+    Decode.andThen
+        (\string ->
+            string
+                |> fromString
+                |> Maybe.map Decode.succeed
+                |> Maybe.withDefault (Decode.fail "Not a correctly formatted instance name")
+        )
+        Decode.string
 
 
 name : Instance -> String

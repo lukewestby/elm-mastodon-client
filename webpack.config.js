@@ -1,5 +1,7 @@
 const path = require('path')
 const HtmlPlugin = require('html-webpack-plugin')
+const history = require('connect-history-api-fallback')
+const convert = require('koa-connect')
 
 module.exports = {
   entry: {
@@ -9,6 +11,7 @@ module.exports = {
   output: {
     filename: 'bundle.js',
     path: path.join(__dirname, 'dist'),
+    publicPath: '/'
   },
 
   mode: process.env.NODE_ENV || 'development',
@@ -65,9 +68,14 @@ module.exports = {
 
   serve: {
     hotClient: false,
+    add: (app, middleware, options) => {
+      app.use(convert(history()))
+    },
   },
 
   plugins: [
-    new HtmlPlugin()
+    new HtmlPlugin({
+      meta: {viewport: 'width=device-width, initial-scale=1, shrink-to-fit=no'}
+    })
   ],
 }
