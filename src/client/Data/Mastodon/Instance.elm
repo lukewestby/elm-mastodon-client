@@ -1,7 +1,6 @@
 module Data.Mastodon.Instance
     exposing
         ( Instance
-        , authorizeUrl
         , decoder
         , encoder
         , fromString
@@ -48,25 +47,6 @@ fromString input =
         Just (Instance input)
     else
         Nothing
-
-
-authorizeUrl : ClientId -> Instance -> Url
-authorizeUrl clientId (Instance host) =
-    { protocol = Url.Https
-    , host = host
-    , port_ = Nothing
-    , fragment = Nothing
-    , path = "/oauth/authorize"
-    , query =
-        Builder.toQuery
-            [ Builder.string "response_type" "code"
-            , ClientId.toQueryParameter "client_id" clientId
-            , Builder.string "redirect_uri" "https://elm-mastodon-demo.now.sh/auth/redirect"
-            , Builder.string "scope" "read write follow"
-            ]
-            |> String.dropLeft 1
-            |> Just
-    }
 
 
 

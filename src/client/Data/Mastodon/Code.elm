@@ -3,6 +3,7 @@ module Data.Mastodon.Code
         ( Code
         , queryParser
         , toQueryParameter
+        , toString
         )
 
 import Url.Builder as Builder
@@ -21,3 +22,8 @@ queryParser name =
 toQueryParameter : String -> Code -> Builder.QueryParameter
 toQueryParameter name (Code string) =
     Builder.string name string
+
+
+toString : Code -> String
+toString (Code code) =
+    code

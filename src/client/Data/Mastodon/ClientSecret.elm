@@ -5,6 +5,7 @@ module Data.Mastodon.ClientSecret
         , encoder
         , fromStringField
         , toQueryParameter
+        , toString
         )
 
 import Graphql.Field as Field exposing (Field)
@@ -25,6 +26,11 @@ toQueryParameter name (ClientSecret string) =
 fromStringField : Field String a -> Field ClientSecret a
 fromStringField field =
     Field.map ClientSecret field
+
+
+toString : ClientSecret -> String
+toString (ClientSecret string) =
+    string
 
 
 encoder : ClientSecret -> Value

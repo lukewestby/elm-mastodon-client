@@ -5,6 +5,7 @@ declare var self: ServiceWorkerGlobalScope
 
 import { graphql } from 'graphql'
 import schema from './Schema'
+import * as Context from './Context'
 
 interface RequestParams {
   query: string | null,
@@ -33,7 +34,8 @@ const getParams = async (request: Request): Promise<RequestParams> => {
 const exec = async (request: Request): Promise<Response> => {
   try {
     const params = await getParams(request)
-    const result = await graphql(schema, params.query, null, {}, params.variables, params.operationName)
+    const context = await Context.fromRequest(request)
+    const result = await graphql(schema, params.query, null, context, params.variables, params.operationName)
     return new Response(JSON.stringify(result))
   } catch (error) {
     return new Response(error.message, { status: 500 })

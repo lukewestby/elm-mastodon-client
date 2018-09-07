@@ -3,6 +3,7 @@ port module Effects
         ( Effect
         , Error(..)
         , State
+        , batch
         , createApplication
         , loadUrl
         , login
@@ -11,14 +12,19 @@ port module Effects
         , pushRoute
         , replaceRoute
         , run
+        , saveSession
         , verifyInstance
         )
 
 import Browser.Navigation
 import Data.Mastodon.Client as Client exposing (Client)
 import Data.Mastodon.ClientId as ClientId exposing (ClientId)
+import Data.Mastodon.ClientSecret as ClientSecret exposing (ClientSecret)
+import Data.Mastodon.Code as Code exposing (Code)
+import Data.Mastodon.Credentials as Credentials exposing (Credentials)
 import Data.Mastodon.Instance as Instance exposing (Instance)
 import Extra.Maybe as Maybe
+import Extra.Url as Url
 import Graphql.Field as Field
 import Graphql.Http
 import Graphql.Http.GraphqlError as GraphqlError
@@ -30,6 +36,7 @@ import Mastodon.Graphql.Enum.Scope as ApiScope
 import Mastodon.Graphql.Mutation as ApiMutation
 import Mastodon.Graphql.Query as ApiQuery
 import Route
+import Session exposing (Session)
 import Url exposing (Url)
 import Url.Builder as Builder
 
@@ -49,7 +56,7 @@ verifyInstance instance =
         }
 
 
-createApplication : Instance -> Effect ( Client.Id, Client )
+createApplication : Instance -> Effect Client
 createApplication instance =
     GraphqlMutation
         { selection =
@@ -58,8 +65,11 @@ createApplication instance =
                     (ApiMutation.createApplication
                         identity
                         { clientName = "Elm Mastodon Example"
-                        , redirectUri = "https://elm-mastadon-demo.now.sh"
                         , scopes = [ ApiScope.Read, ApiScope.Write, ApiScope.Follow ]
+                        , redirectUri =
+                            Route.InstanceValidation Nothing
+                                |> Route.toUrl
+                                |> Url.toString
                         }
                         (Client.selection instance)
                     )
@@ -68,12 +78,23 @@ createApplication instance =
         }
 
 
-login : Instance -> ClientId -> Effect msg
-login instance clientId =
-    instance
-        |> Instance.authorizeUrl clientId
-        |> Url.toString
-        |> LoadUrl
+login : Client -> Code -> Effect Credentials
+login client code =
+    GraphqlMutation
+        { selection =
+            ApiMutation.selection identity
+                |> SelectionSet.with
+                    (ApiMutation.login
+                        { clientId = ClientId.toString client.clientId
+                        , clientSecret = ClientSecret.toString client.clientSecret
+                        , redirectUri = Url.toString client.redirect
+                        , code = Code.toString code
+                        }
+                        (Credentials.selection client.instance)
+                    )
+        , headers =
+            [ ( "x-mastodon-instance", Instance.name client.instance ) ]
+        }
 
 
 loadUrl : Url -> Effect msg
@@ -85,7 +106,7 @@ pushRoute : Route.Route -> Effect msg
 pushRoute route =
     route
         |> Route.toUrl
-        |> Url.toString
+        |> Url.toAbsoluteString
         |> PushUrl
 
 
@@ -93,8 +114,16 @@ replaceRoute : Route.Route -> Effect msg
 replaceRoute route =
     route
         |> Route.toUrl
-        |> Url.toString
+        |> Url.toAbsoluteString
         |> ReplaceUrl
+
+
+saveSession : Session -> Effect msg
+saveSession session =
+    PortSend
+        { tag = "SaveSession"
+        , data = Session.encoder session
+        }
 
 
 port outbound : { tag : String, data : Value } -> Cmd msg
@@ -116,12 +145,18 @@ type Effect msg
     | PushUrl String
     | ReplaceUrl String
     | LoadUrl String
+    | Batch (List (Effect msg))
     | None
 
 
 none : Effect msg
 none =
     None
+
+
+batch : List (Effect msg) -> Effect msg
+batch =
+    Batch
 
 
 map : (a -> b) -> Effect a -> Effect b
@@ -150,6 +185,9 @@ map tagger effect =
 
         ReplaceUrl url ->
             ReplaceUrl url
+
+        Batch list ->
+            Batch (List.map (map tagger) list)
 
         None ->
             None
@@ -215,6 +253,9 @@ run state onError effect =
 
         ReplaceUrl url ->
             Browser.Navigation.replaceUrl state.navKey url
+
+        Batch list ->
+            Cmd.batch (List.map (run state onError) list)
 
         None ->
             Cmd.none

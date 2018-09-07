@@ -45,3 +45,9 @@ export const validateResponse = (response: Response): Promise<{ data: any, links
     links: response.headers.has('link') ? parseLinkHeader(response.headers.get('link')) : {}
   }))
 }
+
+
+export const logError = (error: Error) => {
+  console.error(error)
+  return Promise.reject(error)
+}

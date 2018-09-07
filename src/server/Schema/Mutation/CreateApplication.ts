@@ -30,12 +30,11 @@ export const field: GraphQLFieldConfig<any, Context.WithInstance, CreateApplicat
       body.append('redirect_uris', args.redirectUri)
       body.append('scopes', args.scopes.map(scope => scope.toLowerCase()).join(' '))
       if (args.website) body.append('website', args.website)
-      fetch(`https://${context.instance}/api/v1/apps`, {
+      return fetch(`https://${context.instance}/api/v1/apps`, {
         method: 'POST',
         body: body
       })
       .then(r => r.json())
-      .then(Helpers.camelCaseKeys)
     }
   )
 }

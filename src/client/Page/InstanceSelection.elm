@@ -1,16 +1,20 @@
 module Page.InstanceSelection exposing (Model, Msg, init, subscriptions, title, update, view)
 
+import Data.Mastodon.Client as Client exposing (Client)
+import Data.Mastodon.Clients as Clients exposing (Clients)
 import Data.Mastodon.Instance as Instance exposing (Instance)
 import Effects exposing (Effect)
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as Attributes
 import Html.Styled.Events as Events
+import Session exposing (LoggedOutSession(..))
 
 
 type Model
     = UserTyping String
-    | Verifying Instance
-    | Verified Instance
+    | VerifyingInstance Instance
+    | CreatingClient Instance
+    | LoggingIn Client
 
 
 inputText : Model -> String
@@ -19,48 +23,81 @@ inputText model =
         UserTyping string ->
             string
 
-        Verifying instance ->
+        VerifyingInstance instance ->
             Instance.name instance
 
-        Verified instance ->
+        CreatingClient instance ->
             Instance.name instance
+
+        LoggingIn client ->
+            Instance.name client.instance
 
 
 type Msg
     = InstanceInputChanged String
     | InstanceSelected
     | InstanceVerified Bool
+    | ClientCreated Client
 
 
-update : Msg -> Model -> ( Model, Effect Msg )
-update msg model =
+update : LoggedOutSession -> Msg -> Model -> ( Model, Effect Msg, Session.Updates )
+update (LoggedOutSession clients) msg model =
     case ( msg, model ) of
         ( InstanceInputChanged input, UserTyping _ ) ->
             ( UserTyping input
             , Effects.none
+            , Session.updates
             )
 
         ( InstanceSelected, UserTyping input ) ->
             case Instance.fromString input of
                 Just instance ->
-                    ( Verifying instance
-                    , Effects.verifyInstance instance
-                        |> Effects.map InstanceVerified
-                    )
+                    case Clients.get instance clients of
+                        Just client ->
+                            ( LoggingIn client
+                            , Effects.loadUrl (Client.oauthUrl client)
+                            , Session.updates
+                                |> Session.awaitCodeFrom client
+                            )
+
+                        Nothing ->
+                            ( VerifyingInstance instance
+                            , Effects.verifyInstance instance
+                                |> Effects.map InstanceVerified
+                            , Session.updates
+                            )
 
                 Nothing ->
                     ( UserTyping input
                     , Effects.none
+                    , Session.updates
                     )
 
-        ( InstanceVerified result, Verifying instance ) ->
+        ( InstanceVerified result, VerifyingInstance instance ) ->
             if result then
-                ( Verified instance, Effects.none )
+                ( CreatingClient instance
+                , Effects.createApplication instance
+                    |> Effects.map ClientCreated
+                , Session.updates
+                )
             else
-                ( UserTyping (Instance.name instance), Effects.none )
+                ( UserTyping (Instance.name instance)
+                , Effects.none
+                , Session.updates
+                )
+
+        ( ClientCreated client, CreatingClient instance ) ->
+            ( LoggingIn client
+            , Effects.loadUrl (Client.oauthUrl client)
+            , Session.updates
+                |> Session.awaitCodeFrom client
+            )
 
         _ ->
-            ( model, Effects.none )
+            ( model
+            , Effects.none
+            , Session.updates
+            )
 
 
 init : ( Model, Effect Msg )
@@ -87,12 +124,6 @@ view model =
         , Html.button
             [ Events.onClick InstanceSelected ]
             [ Html.text "Log In" ]
-        , case model of
-            Verified _ ->
-                Html.div [] [ Html.text "This is a real instance" ]
-
-            _ ->
-                Html.text ""
         ]
 
 

@@ -10,6 +10,7 @@ import Html.Styled.Events as Events
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
 import Page.InstanceSelection
+import Page.InstanceValidation
 import Route exposing (Route)
 import Session exposing (Session)
 import Url exposing (Url)
@@ -19,6 +20,8 @@ type PageModel
     = NotFound
     | Redirect
     | InstanceSelection Page.InstanceSelection.Model
+    | InstanceValidation Page.InstanceValidation.Model
+    | Home
 
 
 type alias Model =
@@ -52,10 +55,11 @@ init flags url navKey =
 
 type Msg
     = ErrorOccured Effects.Error
-    | GotInstanceSelectionMsg Page.InstanceSelection.Msg
     | ChangedUrl Url
     | ClickedLink Browser.UrlRequest
     | NoOp
+    | GotInstanceSelectionMsg Page.InstanceSelection.Msg
+    | GotInstanceValidationMsg Page.InstanceValidation.Msg
 
 
 update : Msg -> Model -> ( Model, Effect Msg )
@@ -90,30 +94,74 @@ update msg model =
                     )
 
         ( GotInstanceSelectionMsg subMsg, InstanceSelection subModel ) ->
-            Page.InstanceSelection.update subMsg subModel
-                |> Tuple.mapFirst (\m -> { model | page = InstanceSelection m })
-                |> Tuple.mapSecond (Effects.map GotInstanceSelectionMsg)
+            case Session.loggedOut model.session of
+                Just loggedOut ->
+                    Page.InstanceSelection.update loggedOut subMsg subModel
+                        |> updateWith InstanceSelection GotInstanceSelectionMsg model
+
+                Nothing ->
+                    ( model, Effects.none )
+
+        ( GotInstanceValidationMsg subMsg, InstanceValidation subModel ) ->
+            case Session.awaitingCode model.session of
+                Just awaitingCode ->
+                    Page.InstanceValidation.update awaitingCode subMsg subModel
+                        |> updateWith InstanceValidation GotInstanceValidationMsg model
+
+                Nothing ->
+                    ( model, Effects.none )
 
         _ ->
             ( model, Effects.none )
 
 
+updateWith : (subModel -> PageModel) -> (subMsg -> Msg) -> Model -> ( subModel, Effect subMsg, Session.Updates ) -> ( Model, Effect Msg )
+updateWith toPageModel toMsg model ( subModel, subMsg, sessionUpdates ) =
+    case Session.runUpdates model.session sessionUpdates of
+        ( newSession, True ) ->
+            ( { model | session = newSession, page = toPageModel subModel }
+            , Effects.batch
+                [ Effects.saveSession newSession
+                , Effects.map toMsg subMsg
+                ]
+            )
+
+        ( _, False ) ->
+            ( { model | page = toPageModel subModel }
+            , Effects.map toMsg subMsg
+            )
+
+
 changeRouteTo : Maybe Route.Route -> Session -> PageModel -> ( PageModel, Effect Msg )
 changeRouteTo maybeRoute session page =
-    case ( maybeRoute, session ) of
-        ( Nothing, _ ) ->
+    case maybeRoute of
+        Nothing ->
             ( NotFound, Effects.none )
 
-        ( Just Route.Root, Session.LoggedOut _ ) ->
-            ( page, Effects.replaceRoute Route.InstanceSelection )
+        Just Route.Root ->
+            ( page
+            , Effects.replaceRoute Route.InstanceSelection
+            )
 
-        ( Just Route.InstanceSelection, Session.LoggedOut _ ) ->
+        Just Route.InstanceSelection ->
             Page.InstanceSelection.init
                 |> Tuple.mapFirst InstanceSelection
                 |> Tuple.mapSecond (Effects.map GotInstanceSelectionMsg)
 
-        _ ->
-            ( page, Effects.none )
+        Just (Route.InstanceValidation maybeCode) ->
+            case ( Session.awaitingCode session, maybeCode ) of
+                ( Just awaitingCodeSession, Just code ) ->
+                    Page.InstanceValidation.init awaitingCodeSession code
+                        |> Tuple.mapFirst InstanceValidation
+                        |> Tuple.mapSecond (Effects.map GotInstanceValidationMsg)
+
+                ( _, _ ) ->
+                    ( page
+                    , Effects.replaceRoute Route.InstanceSelection
+                    )
+
+        Just Route.Home ->
+            ( Home, Effects.none )
 
 
 title : Model -> String
@@ -139,6 +187,13 @@ view model =
             Page.InstanceSelection.view subModel
                 |> Html.map GotInstanceSelectionMsg
 
+        InstanceValidation subModel ->
+            Page.InstanceValidation.view subModel
+                |> Html.map GotInstanceValidationMsg
+
+        Home ->
+            Html.text "What's good"
+
 
 styles : Model -> List Css.Global.Snippet
 styles model =
@@ -157,6 +212,13 @@ subscriptions model =
         InstanceSelection subModel ->
             Page.InstanceSelection.subscriptions subModel
                 |> Sub.map GotInstanceSelectionMsg
+
+        InstanceValidation subModel ->
+            Page.InstanceValidation.subscriptions subModel
+                |> Sub.map GotInstanceValidationMsg
+
+        Home ->
+            Sub.none
 
 
 main : Program Value Model Msg

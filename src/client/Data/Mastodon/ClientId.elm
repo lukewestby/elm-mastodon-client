@@ -5,6 +5,7 @@ module Data.Mastodon.ClientId
         , encoder
         , fromStringField
         , toQueryParameter
+        , toString
         )
 
 import Graphql.Field as Field exposing (Field)
@@ -25,6 +26,11 @@ toQueryParameter name (ClientId string) =
 fromStringField : Field String a -> Field ClientId a
 fromStringField field =
     Field.map ClientId field
+
+
+toString : ClientId -> String
+toString (ClientId string) =
+    string
 
 
 encoder : ClientId -> Value

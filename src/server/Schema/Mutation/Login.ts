@@ -3,8 +3,8 @@ import { GraphQLFieldConfig } from 'graphql'
 import * as Context from '../../Context'
 import * as Helpers from '../../Helpers'
 import * as Types from '../Types/Dsl'
-import Client from '../Types/Client'
 import Scope, {ApiScope} from '../Types/Scope'
+import Credentials from '../Types/Credentials'
 
 interface LoginArgs {
   clientId: string,
@@ -14,12 +14,12 @@ interface LoginArgs {
 }
 
 export const field: GraphQLFieldConfig<any, Context.WithInstance, LoginArgs> = {
-  type: Types.nonNull(Client),
+  type: Types.nonNull(Credentials),
   args: {
-    clientName: { type: Types.nonNull(Types.string) },
+    clientId: { type: Types.nonNull(Types.string) },
     redirectUri: { type: Types.nonNull(Types.string) },
-    scopes: { type: Types.nonNullList(Scope) },
-    website: { type: Types.string }
+    clientSecret: { type: Types.nonNull(Types.string) },
+    code: { type: Types.nonNull(Types.string) }
   },
   resolve: combineResolvers(
     Context.requireInstance,
@@ -30,13 +30,12 @@ export const field: GraphQLFieldConfig<any, Context.WithInstance, LoginArgs> = {
       body.append('redirect_uri', args.redirectUri)
       body.append('code', args.code)
       body.append('grant_type', 'authorization_code')
-      fetch(`https://${context.instance}/auth/token`, {
+      return fetch(`https://${context.instance}/oauth/token`, {
         method: 'POST',
         body: body
       })
       .then(Helpers.validateResponse)
       .then(({ data }) => data)
-      .then(Helpers.camelCaseKeys)
     }
   )
 }
